@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Set your GitHub organization or folder name
+ORG_NAME="your-org-name"
+# Set your GitHub personal access token
+GH_TOKEN="your-personal-access-token"
+
+# List repositories within the organization or folder
+REPO_LIST=$(gh repo list $ORG_NAME --json name --limit 100 --token $GH_TOKEN | awk -F'"' '{print $4}')
+
+# Clone and update each repository
+for REPO_NAME in $REPO_LIST; do
+  REPO_URL="https://github.com/$ORG_NAME/$REPO_NAME.git"
+  echo "Cloning $REPO_URL"
+  git clone $REPO_URL
+
+  # Change to repository directory
+  cd $REPO_NAME
+
+  # Perform a git pull to fetch the latest changes
+  echo "Performing git pull"
+  git pull
+
+  # Check if a yarn.lock file exists
+  if [ -f "yarn.lock" ]; then
+    # Run yarn install if yarn.lock is present
+    echo "Running yarn install"
+    yarn install
+  fi
+
+  # Move back to the parent directory
+  cd ..
+done
