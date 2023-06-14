@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Set your GitHub organization name and folder
+ORG_NAME="your_organization"
+FOLDER_NAME="your_folder"
+
+# Set your GitHub access token
+GITHUB_TOKEN="your_access_token"
+
+# Set the destination directory where repositories will be cloned
+DESTINATION_DIR="path_to_destination_directory"
+
+# Get the list of repositories in the specified organization folder
+REPO_LIST=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG_NAME/repos?per_page=100&page=1" | jq -r --arg folder "$FOLDER_NAME" '.[] | select(.name | startswith($folder)) | .clone_url')
+
+# Clone repositories and perform git pull and yarn install
+for REPO_URL in $REPO_LIST; do
+  # Extract the repository name from the clone URL
+  REPO_NAME=$(basename -s .git $REPO_URL)
+
+  # Clone the repository if it doesn't exist, otherwise do a git pull
+  if [ ! -d "$DESTINATION_DIR/$REPO_NAME" ]; then
+    git clone $REPO_URL $DESTINATION_DIR/$REPO_NAME
+  else
+    cd $DESTINATION_DIR/$REPO_NAME
+    git pull
+  fi
+
+  # Perform yarn install
+  if [ -f "$DESTINATION_DIR/$REPO_NAME/package.json" ]; then
+    cd $DESTINATION_DIR/$REPO_NAME
+    yarn install
+  fi
+done
